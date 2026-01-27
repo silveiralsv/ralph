@@ -1,0 +1,7 @@
+# Ralph Loop Progress Log
+Project: GlobalExecutable
+Branch: feat/global-executable
+Started: 2026-01-27 18:37:10
+
+---
+

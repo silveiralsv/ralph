@@ -1,0 +1,65 @@
+{
+  "project": "GlobalExecutable",
+  "branchName": "feat/global-executable",
+  "description": "Make ralph.sh available as a global 'ralph' command via symlink installation",
+  "targetDirectory": "/Users/lucas/www/scripts/ralph",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix symlink resolution for SCRIPT_DIR",
+      "description": "As a developer, I want ralph.sh to correctly resolve its own directory when run via symlink, so that it can find CLAUDE.md regardless of how it's invoked",
+      "acceptanceCriteria": [
+        "SCRIPT_DIR correctly resolves to the actual script location, not the symlink location",
+        "Works on macOS (which lacks readlink -f)",
+        "Works on Linux",
+        "Script still works when run directly (not via symlink)"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Update help text for ralph command",
+      "description": "As a developer, I want the help text to show 'ralph' instead of 'ralph.sh', so that documentation is accurate after installation",
+      "acceptanceCriteria": [
+        "Usage line shows 'ralph' instead of 'ralph.sh'",
+        "Examples show 'ralph' command",
+        "Help text reflects running from any project directory"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create install.sh script",
+      "description": "As a developer, I want to run ./install.sh to create a symlink at /usr/local/bin/ralph, so that I can use ralph from anywhere on my system",
+      "acceptanceCriteria": [
+        "Running ./install.sh creates a symlink at /usr/local/bin/ralph",
+        "Symlink points to the actual ralph.sh script",
+        "Installation uses sudo if needed (prompts user)",
+        "Installation verifies success by checking if ralph is accessible",
+        "Installation is idempotent (safe to run multiple times)",
+        "Script includes --uninstall flag to remove the symlink"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Verify end-to-end functionality",
+      "description": "As a developer, I want to verify that ralph works correctly from any directory after installation, so that I can confidently use the global command",
+      "acceptanceCriteria": [
+        "ralph command works from any directory",
+        "All existing flags work (--help, --max, -m, positional args)",
+        "Script correctly resolves CLAUDE.md from script directory",
+        "Script correctly uses current working directory for project files"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

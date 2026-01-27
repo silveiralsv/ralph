@@ -1,0 +1,49 @@
+{
+  "project": "MyFeature",
+  "branchName": "ralph/my-feature",
+  "description": "A brief description of the feature being implemented",
+  "targetDirectory": "/path/to/project",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create database schema",
+      "description": "As a developer, I need the database schema created so that data can be persisted",
+      "acceptanceCriteria": [
+        "Migration file exists with up/down functions",
+        "Schema includes all required fields",
+        "Indexes are created for frequently queried fields"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement API endpoint",
+      "description": "As a client, I need a REST API endpoint to interact with the feature",
+      "acceptanceCriteria": [
+        "GET /api/resource returns list of items",
+        "POST /api/resource creates new item",
+        "Proper error handling and validation",
+        "Unit tests cover happy path and error cases"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add UI component",
+      "description": "As a user, I need a UI to view and interact with the feature",
+      "acceptanceCriteria": [
+        "Component renders list of items",
+        "Form allows creating new items",
+        "Loading and error states are handled",
+        "Component is accessible (ARIA labels, keyboard nav)"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
