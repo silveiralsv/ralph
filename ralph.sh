@@ -44,10 +44,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 print_usage() {
-    echo "Usage: ralph.sh [OPTIONS] [MAX_ITERATIONS]"
+    echo "Usage: ralph [OPTIONS] [MAX_ITERATIONS]"
     echo ""
     echo "Run Claude Code in a loop to complete PRD items autonomously."
-    echo "Run this from your project directory (where prd.json is located)."
+    echo "Run this from any project directory that contains a prd.json file."
     echo ""
     echo "Options:"
     echo "  --max N, -m N    Set maximum iterations (default: 10)"
@@ -62,9 +62,9 @@ print_usage() {
     echo "  .ralph-archive/  Archived runs (auto-created)"
     echo ""
     echo "Examples:"
-    echo "  cd ~/project && ralph.sh         # Run in project directory"
-    echo "  ralph.sh 5                       # Run with 5 iterations"
-    echo "  ralph.sh --max 20                # Run with 20 iterations"
+    echo "  cd ~/my-project && ralph         # Run from any project directory"
+    echo "  ralph 5                          # Run with 5 iterations max"
+    echo "  ralph --max 20                   # Run with 20 iterations max"
 }
 
 log_info() {
