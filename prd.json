@@ -15,8 +15,8 @@
         "Script still works when run directly (not via symlink)"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented resolve_script_path function that follows symlinks to find the actual script location. Tested on macOS, works both directly and via symlink."
     },
     {
       "id": "US-002",
@@ -28,8 +28,8 @@
         "Help text reflects running from any project directory"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Updated print_usage function: changed 'ralph.sh' to 'ralph' in usage line and all examples, updated description to mention running from any project directory."
     },
     {
       "id": "US-003",
@@ -44,8 +44,8 @@
         "Script includes --uninstall flag to remove the symlink"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created install.sh script with automatic sudo detection, idempotent operation, --uninstall flag, and installation verification."
     },
     {
       "id": "US-004",
@@ -58,8 +58,8 @@
         "Script correctly uses current working directory for project files"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified end-to-end functionality: --help, --max, -m, and positional args all work correctly. SCRIPT_DIR resolution follows symlinks to find CLAUDE.md. PROJECT_DIR correctly uses current working directory. Tested via symlink from different directory. Error handling works when prd.json is missing."
     }
   ]
 }
