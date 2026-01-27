@@ -5,7 +5,24 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the actual script location, following symlinks
+# This works on both macOS (which lacks readlink -f) and Linux
+resolve_script_path() {
+    local source="${BASH_SOURCE[0]}"
+    local dir
+
+    # Resolve symlinks until we get to the actual file
+    while [[ -L "$source" ]]; do
+        dir="$(cd -P "$(dirname "$source")" && pwd)"
+        source="$(readlink "$source")"
+        # If source is a relative symlink, resolve it relative to the symlink's directory
+        [[ "$source" != /* ]] && source="$dir/$source"
+    done
+
+    cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_path)"
 PROJECT_DIR="$(pwd)"
 
 # Project-specific files (in current working directory)
