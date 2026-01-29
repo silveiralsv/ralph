@@ -1,6 +1,7 @@
 {
   "project": "MyFeature",
-  "branchName": "ralph/my-feature",
+  "ticketNumber": "TKT-1234",
+  "branchName": "ralph/ticket-number_my-feature",
   "description": "A brief description of the feature being implemented",
   "targetDirectory": "/path/to/project",
   "userStories": [
