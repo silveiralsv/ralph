@@ -1,0 +1,61 @@
+{
+  "project": "RemoveAUDCurrencySupport",
+  "branchName": "chore/remove-aud-currency-support",
+  "description": "Clean up unused AUD currency handling code from the inviteManyTeamMembers and deleteTeamMember mutations. The system only supports USD, so AUD code paths are dead code.",
+  "targetDirectory": "/Users/lucas/www/edvisor/agency-service",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove AUD price IDs from config",
+      "description": "As a developer, I want unused AUD price IDs removed from configuration, so that the config reflects actual supported currencies",
+      "acceptanceCriteria": [
+        "Remove audMonthlyPriceId from src/shared/config.ts",
+        "Remove audAnnualPriceId from src/shared/config.ts",
+        "Ensure no other code references these removed config values"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Simplify Stripe service to USD-only",
+      "description": "As a developer, I want the Stripe service to use USD by default without currency parameters, so that the API is simpler and matches the actual business requirements",
+      "acceptanceCriteria": [
+        "Modify getStripePrivateClient() to use USD key directly (remove AUD branching)",
+        "Update findAdditionalUsersSubscriptionItem() to not require currency parameter",
+        "Update updateSubscriptionItemQuantity() to not require currency parameter",
+        "Update any other Stripe service methods used by team member mutations to be USD-only"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Remove currency parameter from domain service seat operations",
+      "description": "As a developer, I want the seat provisioning/deprovisioning code to not pass currency parameters, so that the code is simpler and reflects the actual USD-only behavior",
+      "acceptanceCriteria": [
+        "Remove currency variable from inviteManyTeamMembers flow in domain.service.ts",
+        "Remove currency variable from deleteTeamMember flow in domain.service.ts",
+        "Update calls to stripeService.findAdditionalUsersSubscriptionItem() to not require currency",
+        "Update calls to stripeService.updateSubscriptionItemQuantity() to not require currency"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Clean up mapCurrencyToEnum helper",
+      "description": "As a developer, I want the currency mapping helper simplified, so that it doesn't reference AUD",
+      "acceptanceCriteria": [
+        "Update or remove mapCurrencyToEnum() method in domain.service.ts",
+        "Ensure pricing preview functionality still works with USD-only"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
