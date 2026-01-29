@@ -22,6 +22,8 @@ resolve_script_path() {
 SCRIPT_DIR="$(resolve_script_path)"
 RALPH_SCRIPT="$SCRIPT_DIR/ralph.sh"
 INSTALL_PATH="/usr/local/bin/ralph"
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+SKILLS_DIR="$SCRIPT_DIR/skills"
 
 # Colors for output
 RED='\033[0;31m'
@@ -57,6 +59,7 @@ print_usage() {
     echo ""
     echo "Installation:"
     echo "  Creates a symlink at $INSTALL_PATH pointing to ralph.sh"
+    echo "  Creates skill symlinks at ~/.claude/skills/ for /prd and /ralph skills"
     echo "  May require sudo for write access to /usr/local/bin"
 }
 
@@ -83,6 +86,84 @@ run_with_sudo_if_needed() {
     fi
 }
 
+install_skills() {
+    log_info "Installing Claude skills..."
+
+    # Create skills directory if it doesn't exist
+    if [[ ! -d "$CLAUDE_SKILLS_DIR" ]]; then
+        log_info "Creating directory $CLAUDE_SKILLS_DIR"
+        mkdir -p "$CLAUDE_SKILLS_DIR"
+    fi
+
+    # Install each skill
+    local skills=("prd" "ralph")
+    for skill in "${skills[@]}"; do
+        local source_dir="$SKILLS_DIR/$skill"
+        local target_link="$CLAUDE_SKILLS_DIR/$skill"
+
+        if [[ ! -d "$source_dir" ]]; then
+            log_warning "Skill directory not found: $source_dir"
+            continue
+        fi
+
+        if [[ -L "$target_link" ]]; then
+            local current_target
+            current_target="$(readlink "$target_link")"
+
+            if [[ "$current_target" == "$source_dir" ]]; then
+                log_success "Skill '$skill' already installed and pointing to correct location"
+                continue
+            else
+                log_warning "Existing skill symlink '$skill' points to: $current_target"
+                log_info "Updating symlink to point to: $source_dir"
+                rm "$target_link"
+            fi
+        elif [[ -d "$target_link" ]]; then
+            log_warning "Skill '$skill' exists as a directory at $target_link"
+            log_warning "Skipping - please remove manually if you want to use this repo's version"
+            continue
+        elif [[ -e "$target_link" ]]; then
+            log_warning "Skill '$skill' exists as a file at $target_link"
+            log_warning "Skipping - please remove manually if you want to use this repo's version"
+            continue
+        fi
+
+        log_info "Creating symlink: $target_link -> $source_dir"
+        ln -s "$source_dir" "$target_link"
+        log_success "Skill '$skill' installed"
+    done
+}
+
+uninstall_skills() {
+    log_info "Uninstalling Claude skills..."
+
+    local skills=("prd" "ralph")
+    for skill in "${skills[@]}"; do
+        local source_dir="$SKILLS_DIR/$skill"
+        local target_link="$CLAUDE_SKILLS_DIR/$skill"
+
+        if [[ ! -L "$target_link" ]]; then
+            if [[ -e "$target_link" ]]; then
+                log_warning "Skill '$skill' exists but is not a symlink - skipping"
+            else
+                log_info "Skill '$skill' not installed"
+            fi
+            continue
+        fi
+
+        local current_target
+        current_target="$(readlink "$target_link")"
+
+        if [[ "$current_target" == "$source_dir" ]]; then
+            log_info "Removing skill symlink: $target_link"
+            rm "$target_link"
+            log_success "Skill '$skill' uninstalled"
+        else
+            log_warning "Skill '$skill' symlink points elsewhere ($current_target) - skipping"
+        fi
+    done
+}
+
 install_ralph() {
     log_info "Installing ralph..."
 
@@ -105,23 +186,26 @@ install_ralph() {
         local current_target
         current_target="$(readlink "$INSTALL_PATH")"
 
-        if [[ "$current_target" == "$RALPH_SCRIPT" ]]; then
-            log_success "ralph is already installed and pointing to the correct location"
-            return 0
-        else
+        if [[ "$current_target" != "$RALPH_SCRIPT" ]]; then
             log_warning "Existing symlink points to: $current_target"
             log_info "Updating symlink to point to: $RALPH_SCRIPT"
             run_with_sudo_if_needed rm "$INSTALL_PATH"
+
+            # Create symlink
+            log_info "Creating symlink: $INSTALL_PATH -> $RALPH_SCRIPT"
+            run_with_sudo_if_needed ln -s "$RALPH_SCRIPT" "$INSTALL_PATH"
+        else
+            log_success "ralph is already installed and pointing to the correct location"
         fi
     elif [[ -e "$INSTALL_PATH" ]]; then
         log_error "$INSTALL_PATH already exists and is not a symlink"
         log_error "Please remove it manually before installing"
         exit 1
+    else
+        # Create symlink
+        log_info "Creating symlink: $INSTALL_PATH -> $RALPH_SCRIPT"
+        run_with_sudo_if_needed ln -s "$RALPH_SCRIPT" "$INSTALL_PATH"
     fi
-
-    # Create symlink
-    log_info "Creating symlink: $INSTALL_PATH -> $RALPH_SCRIPT"
-    run_with_sudo_if_needed ln -s "$RALPH_SCRIPT" "$INSTALL_PATH"
 
     # Verify installation
     if command -v ralph &> /dev/null; then
@@ -133,10 +217,16 @@ install_ralph() {
         log_info "You may need to add $target_dir to your PATH"
         log_info "Or restart your terminal session"
     fi
+
+    # Install Claude skills
+    install_skills
 }
 
 uninstall_ralph() {
     log_info "Uninstalling ralph..."
+
+    # Uninstall Claude skills first
+    uninstall_skills
 
     if [[ ! -e "$INSTALL_PATH" && ! -L "$INSTALL_PATH" ]]; then
         log_warning "ralph is not installed at $INSTALL_PATH"

@@ -24,7 +24,7 @@ You are operating as part of the Ralph Loop - an autonomous AI agent system that
 5. **Run Quality Checks**
    - Run typecheck if TypeScript: `npm run typecheck` or `tsc --noEmit`
    - Run linter: `npm run lint` or equivalent
-   - Run tests: `npm test` or equivalent
+   - Run tests: `npm test` or equivalent. If there are many tests like unity and e2e, run both.
    - Fix any issues before proceeding
 
 6. **Commit Changes**
