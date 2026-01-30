@@ -215,6 +215,15 @@ main() {
     local iteration=1
 
     while [[ $iteration -le $MAX_ITERATIONS ]]; do
+        # Check if already complete before running Claude
+        if check_all_complete; then
+            echo ""
+            log_success "=========================================="
+            log_success "All stories marked as passing!"
+            log_success "=========================================="
+            exit 0
+        fi
+
         echo ""
         log_info "=========================================="
         log_info "Iteration $iteration of $MAX_ITERATIONS"

@@ -15,6 +15,7 @@ You are operating as part of the Ralph Loop - an autonomous AI agent system that
 3. **Pick the Next Story**
    - Find the user story with `passes: false` and the **lowest priority number** (1 = highest priority)
    - If multiple stories have the same priority, pick the first one in the array
+   - **If NO stories have `passes: false`**, all work is done - skip to step 8 and output completion signal
 
 4. **Implement the Story**
    - Implement the story according to its description and acceptance criteria
@@ -44,7 +45,8 @@ You are operating as part of the Ralph Loop - an autonomous AI agent system that
      ```
 
 8. **Check Completion**
-   - If ALL stories now have `passes: true`, output exactly: `<promise>COMPLETE</promise>`
+   - Re-read `prd.json` and count how many stories still have `passes: false`
+   - If ALL stories now have `passes: true` (zero with `passes: false`), output exactly on its own line: `<promise>COMPLETE</promise>`
    - Otherwise, just end your response (the loop will spawn another iteration)
 
 ## Important Rules
