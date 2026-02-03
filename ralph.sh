@@ -258,7 +258,7 @@ main() {
         log_debug "Invoking Claude..."
         local output
         local claude_exit=0
-        output=$(claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1) || claude_exit=$?
+        output=$(claude --dangerously-skip-permissions --print --no-session-persistence < "$CLAUDE_MD" 2>&1) || claude_exit=$?
         log_debug "Claude exited with status: $claude_exit"
         log_debug "Output length: ${#output} characters"
         if [[ -z "$output" ]]; then
