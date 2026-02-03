@@ -36,6 +36,9 @@ CLAUDE_MD="$SCRIPT_DIR/CLAUDE.md"
 # Default max iterations
 MAX_ITERATIONS=10
 
+# Debug mode (disabled by default)
+VERBOSE=false
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -51,6 +54,7 @@ print_usage() {
     echo ""
     echo "Options:"
     echo "  --max N, -m N    Set maximum iterations (default: 10)"
+    echo "  --verbose, -v    Enable debug logging"
     echo "  --help, -h       Show this help message"
     echo ""
     echo "Arguments:"
@@ -83,6 +87,12 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+log_debug() {
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo -e "${BLUE}[DEBUG]${NC} $1"
+    fi
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -93,6 +103,10 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             print_usage
             exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
             ;;
         *)
             # Positional argument for max iterations
@@ -187,10 +201,15 @@ EOF
     fi
 }
 
+# Count incomplete stories
+count_incomplete() {
+    jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo "0"
+}
+
 # Check if all stories are complete
 check_all_complete() {
     local incomplete
-    incomplete=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+    incomplete=$(count_incomplete)
     [[ "$incomplete" == "0" ]]
 }
 
@@ -215,14 +234,19 @@ main() {
     local iteration=1
 
     while [[ $iteration -le $MAX_ITERATIONS ]]; do
+        log_debug "Starting iteration $iteration, incomplete stories: $(count_incomplete)"
+
         # Check if already complete before running Claude
+        log_debug "Pre-iteration completion check..."
         if check_all_complete; then
+            log_debug "check_all_complete() returned TRUE - exiting loop"
             echo ""
             log_success "=========================================="
             log_success "All stories marked as passing!"
             log_success "=========================================="
             exit 0
         fi
+        log_debug "check_all_complete() returned FALSE - continuing"
 
         echo ""
         log_info "=========================================="
@@ -231,31 +255,47 @@ main() {
         echo ""
 
         # Run Claude with the prompt
+        log_debug "Invoking Claude..."
         local output
-        output=$(claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1) || true
+        local claude_exit=0
+        output=$(claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1) || claude_exit=$?
+        log_debug "Claude exited with status: $claude_exit"
+        log_debug "Output length: ${#output} characters"
+        if [[ -z "$output" ]]; then
+            log_warning "Claude output is EMPTY!"
+        fi
 
         # Display output
         echo "$output"
 
         # Check for completion signal
         if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then
+            log_debug "COMPLETE signal found in output - exiting"
             echo ""
             log_success "=========================================="
             log_success "All PRD items completed!"
             log_success "=========================================="
             exit 0
+        else
+            log_debug "No COMPLETE signal in output"
         fi
 
         # Check if all stories are now complete
+        local remaining_count
+        remaining_count=$(count_incomplete)
+        log_debug "Post-Claude check: $remaining_count stories with passes=false"
         if check_all_complete; then
+            log_debug "Post-check: ALL COMPLETE - exiting"
             echo ""
             log_success "=========================================="
             log_success "All stories marked as passing!"
             log_success "=========================================="
             exit 0
         fi
+        log_debug "Post-check: NOT all complete, continuing loop"
 
         ((iteration++))
+        log_debug "Incremented iteration to $iteration, looping back..."
     done
 
     echo ""
