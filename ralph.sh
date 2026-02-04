@@ -93,6 +93,130 @@ log_debug() {
     fi
 }
 
+# Global variables for Claude output capture
+CLAUDE_OUTPUT=""
+CLAUDE_EXIT_CODE=0
+
+# Run Claude with streaming output (verbose mode)
+# Streams output to terminal in real-time while capturing to temp file
+run_claude_streaming() {
+    local input_file="$1"
+    local tmpfile
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/ralph-claude.XXXXXX")
+
+    # Cleanup function for temp file
+    cleanup_tmpfile() {
+        rm -f "$tmpfile"
+    }
+    trap cleanup_tmpfile EXIT INT TERM
+
+    log_debug "Claude output will stream in real-time..."
+    log_debug "Temp file: $tmpfile"
+
+    set +e
+    claude --dangerously-skip-permissions --print --no-session-persistence \
+        < "$input_file" 2>&1 | tee "$tmpfile"
+    local pipe_status=("${PIPESTATUS[@]}")
+    set -e
+
+    CLAUDE_EXIT_CODE="${pipe_status[0]}"
+    CLAUDE_OUTPUT=$(<"$tmpfile")
+
+    cleanup_tmpfile
+    trap - EXIT INT TERM
+}
+
+# Show progress spinner while Claude runs (non-verbose mode)
+# Displays elapsed time to indicate progress
+run_claude_with_progress() {
+    local input_file="$1"
+    local tmpfile
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/ralph-claude.XXXXXX")
+    local pid
+    local start_time
+    start_time=$(date +%s)
+
+    # Cleanup function
+    cleanup_progress() {
+        # Kill background process if running
+        if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+        fi
+        rm -f "$tmpfile"
+        # Clear spinner line
+        printf "\r\033[K" >&2
+    }
+    trap cleanup_progress EXIT INT TERM
+
+    # Start Claude in background, capturing output to temp file
+    claude --dangerously-skip-permissions --print --no-session-persistence \
+        < "$input_file" > "$tmpfile" 2>&1 &
+    pid=$!
+
+    # Show spinner while waiting
+    local spinner_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local spinner_idx=0
+
+    while kill -0 "$pid" 2>/dev/null; do
+        local elapsed=$(($(date +%s) - start_time))
+        local mins=$((elapsed / 60))
+        local secs=$((elapsed % 60))
+        local time_str
+        if [[ $mins -gt 0 ]]; then
+            time_str="${mins}m ${secs}s"
+        else
+            time_str="${secs}s"
+        fi
+
+        printf "\r${BLUE}[RUNNING]${NC} Claude working... %s [%s] " \
+            "${spinner_chars:spinner_idx:1}" "$time_str" >&2
+        spinner_idx=$(( (spinner_idx + 1) % ${#spinner_chars} ))
+        sleep 0.1
+    done
+
+    # Get exit code
+    wait "$pid"
+    CLAUDE_EXIT_CODE=$?
+
+    # Clear spinner line
+    printf "\r\033[K" >&2
+
+    # Read captured output
+    CLAUDE_OUTPUT=$(<"$tmpfile")
+
+    local elapsed=$(($(date +%s) - start_time))
+    log_info "Claude finished in ${elapsed}s (exit code: $CLAUDE_EXIT_CODE)"
+
+    rm -f "$tmpfile"
+    trap - EXIT INT TERM
+}
+
+# Dispatcher: choose streaming vs progress based on verbose mode
+run_claude_iteration() {
+    local input_file="$1"
+    local stories_remaining="$2"
+
+    log_debug "=== Claude Iteration Start ==="
+    log_debug "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+    log_debug "Stories remaining: $stories_remaining"
+    log_debug "Input file: $input_file"
+
+    if [[ "$VERBOSE" == "true" ]]; then
+        run_claude_streaming "$input_file"
+    else
+        run_claude_with_progress "$input_file"
+    fi
+
+    log_debug "=== Claude Iteration End ==="
+    log_debug "Exit code: $CLAUDE_EXIT_CODE"
+    log_debug "Output length: ${#CLAUDE_OUTPUT} characters"
+
+    if [[ -z "$CLAUDE_OUTPUT" ]]; then
+        log_warning "Claude output is EMPTY!"
+    fi
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -254,22 +378,18 @@ main() {
         log_info "=========================================="
         echo ""
 
-        # Run Claude with the prompt
-        log_debug "Invoking Claude..."
-        local output
-        local claude_exit=0
-        output=$(claude --dangerously-skip-permissions --print --no-session-persistence < "$CLAUDE_MD" 2>&1) || claude_exit=$?
-        log_debug "Claude exited with status: $claude_exit"
-        log_debug "Output length: ${#output} characters"
-        if [[ -z "$output" ]]; then
-            log_warning "Claude output is EMPTY!"
+        # Run Claude with the prompt (streaming in verbose mode, progress spinner otherwise)
+        local stories_remaining
+        stories_remaining=$(count_incomplete)
+        run_claude_iteration "$CLAUDE_MD" "$stories_remaining"
+
+        # In non-verbose mode, display the captured output now
+        if [[ "$VERBOSE" != "true" ]]; then
+            echo "$CLAUDE_OUTPUT"
         fi
 
-        # Display output
-        echo "$output"
-
         # Check for completion signal
-        if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then
+        if echo "$CLAUDE_OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
             log_debug "COMPLETE signal found in output - exiting"
             echo ""
             log_success "=========================================="
