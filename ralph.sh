@@ -36,6 +36,10 @@ CLAUDE_MD="$SCRIPT_DIR/CLAUDE.md"
 # Default max iterations
 MAX_ITERATIONS=10
 
+# Verbose mode
+VERBOSE=false
+LOG_FILE=""
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -51,6 +55,7 @@ print_usage() {
     echo ""
     echo "Options:"
     echo "  --max N, -m N    Set maximum iterations (default: 10)"
+    echo "  --verbose, -v    Stream output in real-time and log to /tmp/ralph/"
     echo "  --help, -h       Show this help message"
     echo ""
     echo "Arguments:"
@@ -93,6 +98,10 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             print_usage
             exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
             ;;
         *)
             # Positional argument for max iterations
@@ -200,6 +209,15 @@ main() {
     log_info "Project: $PROJECT_DIR"
     log_info "Max iterations: $MAX_ITERATIONS"
 
+    # Set up verbose logging
+    if [[ "$VERBOSE" == true ]]; then
+        LOG_DIR="/tmp/ralph"
+        LOG_FILE="$LOG_DIR/$(basename "$PROJECT_DIR")-$(date +%Y%m%d_%H%M%S).log"
+        mkdir -p "$LOG_DIR"
+        log_info "Verbose mode: logging to $LOG_FILE"
+        log_info "Follow with: tail -f $LOG_FILE"
+    fi
+
     # Archive if branch changed
     archive_if_branch_changed
 
@@ -232,10 +250,16 @@ main() {
 
         # Run Claude with the prompt
         local output
-        output=$(claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1) || true
-
-        # Display output
-        echo "$output"
+        if [[ "$VERBOSE" == true ]]; then
+            # Stream to both terminal and log file in real-time
+            echo "--- Iteration $iteration - $(date) ---" >> "$LOG_FILE"
+            claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1 | tee -a "$LOG_FILE" || true
+            output=$(tail -n 1000 "$LOG_FILE")
+        else
+            # Original behavior: capture then display
+            output=$(claude --dangerously-skip-permissions --print < "$CLAUDE_MD" 2>&1) || true
+            echo "$output"
+        fi
 
         # Check for completion signal
         if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then
