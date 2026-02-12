@@ -17,7 +17,7 @@ Ralph Loop takes a structured PRD (Product Requirements Document) in JSON format
 
 ```bash
 # 1. Navigate to your project
-cd ~/www/edvisor/inventory-service
+cd ~/www/project/inventory-service
 
 # 2. Create a PRD using the /prd skill
 /prd
@@ -33,7 +33,7 @@ ralph.sh
 
 ```bash
 # Run from your project directory
-cd ~/www/edvisor/my-project
+cd ~/www/project/my-project
 ralph.sh                    # Default 10 iterations
 ralph.sh 5                  # 5 iterations
 ralph.sh --max 20           # 20 iterations
@@ -45,12 +45,12 @@ ralph.sh --help             # Show help
 Ralph is designed for multiple projects. Each project has its own isolated context:
 
 ```
-~/www/edvisor/inventory-service/
+~/www/project/inventory-service/
 ├── prd.json              # Project-specific PRD
 ├── progress.txt          # Project-specific progress
 └── .ralph-archive/       # Project-specific archives
 
-~/www/edvisor/billing-service/
+~/www/project/billing-service/
 ├── prd.json              # Completely separate
 ├── progress.txt          # No cross-contamination
 └── .ralph-archive/       # Isolated archives
